@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doola - Internal Dashboard</title>
+    <!-- 1. Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f9fafb; /* Doola's light theme */
+            color: #1f2937;
+        }
+        .page { display: block; }
+        .form-input, .form-select, .form-checkbox {
+            border: 1px solid #d1d5db; color: #1f2937;
+            border-radius: 8px; padding: 12px;
+        }
+        .form-checkbox {
+            height: 1.15rem;
+            width: 1.15rem;
+            padding: 0;
+            accent-color: #3b82f6;
+        }
+        .btn {
+            padding: 10px 20px; border-radius: 8px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s ease;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; } /* Doola Blue */
+        .btn-primary:hover:not(:disabled) { background-color: #2563eb; }
+        .btn-secondary { background-color: #e5e7eb; color: #374151; }
+        .btn-secondary:hover:not(:disabled) { background-color: #d1d5db; }
+        .btn-success { background-color: #10b981; color: white; }
+        .btn-warning { background-color: #f59e0b; color: #1f2937; }
+        .btn-danger { background-color: #ef4444; color: white; }
+        
+        /* Modal Styles */
+        .modal {
+            display: none; position: fixed; z-index: 50;
+            left: 0; top: 0; width: 100%; height: 100%;
+            overflow: auto; background-color: rgba(0,0,0,0.4);
+            align-items: center; justify-content: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background-color: #ffffff;
+            margin: auto;
+            padding: 24px; border-radius: 8px; width: 500px; max-width: 90%;
+            animation: fadeIn 0.3s ease;
+        }
+        .modal-close {
+            color: #9ca3af;
+            font-size: 2rem;
+            line-height: 1;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .modal-close:hover {
+            color: #1f2937;
+        }
+
+        /* Status Badges */
+        .badge {
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badge-green { background-color: #d1fae5; color: #065f46; }
+        .badge-yellow { background-color: #fef3c7; color: #92400e; }
+        .badge-red { background-color: #fee2e2; color: #991b1b; }
+        .badge-gray { background-color: #e5e7eb; color: #4b5563; }
+        
+        /* Spinner for loading button */
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <a href="#" class="font-bold text-2xl text-gray-900">
+                    <span class="text-blue-600">doola</span> Internal
+                </a>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-700 hidden sm:block">Welcome, CX Team</span>
+                    <img class="w-8 h-8 rounded-full" src="https://i.pravatar.cc/100?u=admin-cx" alt="Admin">
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- 1. Dashboard Metrics -->
+        <section id="metrics" class="mb-8">
+            <h1 class="text-3xl font-bold mb-6">Compliance Dashboard</h1>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <h2 class="text-sm font-medium text-gray-500 uppercase">Total Companies</h2>
+                    <p id="metric-total" class="text-3xl font-bold text-gray-900">0</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <h2 class="text-sm font-medium text-gray-500 uppercase">Companies At Risk</h2>
+                    <p id="metric-at-risk" class="text-3xl font-bold text-yellow-500">0</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <h2 class="text-sm font-medium text-gray-500 uppercase">Overdue Filings</h2>
+                    <p id="metric-overdue" class="text-3xl font-bold text-red-500">0</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Company Task Queue -->
+        <section id="task-queue">
+            <h2 class="text-2xl font-bold mb-4">Company Task Queue</h2>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
+                <table class="w-full min-w-[700px]">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="p-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Company</th>
+                            <th class="p-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Status</th>
+                            <th class="p-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Last Checked</th>
+                            <th class="p-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="company-list" class="divide-y divide-gray-200">
+                        <!-- Company rows will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 3. "Manage Services" Modal -->
+    <div id="services-modal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">Manage Services</h2>
+                <span class="modal-close" onclick="closeModal()">&times;</span>
+            </div>
+            <form id="services-form" onsubmit="handleSaveServices(event)">
+                <input type="hidden" id="modal-company-id">
+                <h3 id="modal-company-name" class="text-lg font-medium mb-4">...</h3>
+                
+                <div class="space-y-4">
+                    <div class="flex items-center">
+                        <input id="service-llc" name="llc" type="checkbox" class="form-checkbox">
+                        <label for="service-llc" class="ml-3 block text-sm font-medium text-gray-700">LLC Formation</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="service-banking" name="banking" type="checkbox" class="form-checkbox">
+                        <label for="service-banking" class="ml-3 block text-sm font-medium text-gray-700">doola Banking</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="service-compliance" name="compliance" type="checkbox" class="form-checkbox">
+                        <label for="service-compliance" class="ml-3 block text-sm font-medium text-gray-700">Annual Compliance</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="service-taxes" name="taxes" type="checkbox" class="form-checkbox">
+                        <label for="service-taxes" class="ml-3 block text-sm font-medium text-gray-700">Tax Filing</label>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Services</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- 4. Main JavaScript Logic -->
+    <script>
+        // --- 1. DUMMY DATA ---
+        // This is our in-memory "database" for the demo.
+        let DUMMY_COMPANIES = [
+            {
+                id: '1',
+                name: 'Zenith Labs LLC',
+                status: 'Compliant',
+                last_checked: '2025-11-01T10:00:00Z',
+                services: { llc: true, banking: true, compliance: true, taxes: false }
+            },
+            {
+                id: '2',
+                name: 'Quantum Ventures Inc.',
+                status: 'At Risk',
+                last_checked: '2025-10-15T14:30:00Z',
+                services: { llc: true, banking: true, compliance: false, taxes: false }
+            },
+            {
+                id: '3',
+                name: 'Apex Solutions LLC',
+                status: 'Filing Due',
+                last_checked: '2025-09-05T08:00:00Z',
+                services: { llc: true, banking: false, compliance: true, taxes: true }
+            },
+            {
+                id: '4',
+                name: 'Nova Digital LLC',
+                status: 'Unknown',
+                last_checked: null,
+                services: { llc: true, banking: false, compliance: false, taxes: false }
+            }
+        ];
+        
+        // --- 2. DUMMY API (100% FRONTEND) ---
+        // This object simulates an async backend API.
+        const dummyApi = {
+            getCompanies: async () => {
+                await new Promise(res => setTimeout(res, 300)); // Simulate network delay
+                return { data: DUMMY_COMPANIES, error: null };
+            },
+            
+            getCompanyById: async (id) => {
+                await new Promise(res => setTimeout(res, 50));
+                const company = DUMMY_COMPANIES.find(c => c.id === id);
+                return company ? { data: company, error: null } : { data: null, error: 'Company not found' };
+            },
+            
+            /**
+             * This simulates the "microservice" mentioned in the job description.
+             * It takes a company ID, waits 2 seconds, and returns a new random status.
+             */
+            runComplianceCheck: async (id) => {
+                await new Promise(res => setTimeout(res, 2000)); // Simulate 2-second API call
+                const statuses = ['Compliant', 'At Risk', 'Filing Due'];
+                const newStatus = statuses[Math.floor(Math.random() * statuses.length)];
+                
+                const index = DUMMY_COMPANIES.findIndex(c => c.id === id);
+                if (index !== -1) {
+                    DUMMY_COMPANIES[index].status = newStatus;
+                    DUMMY_COMPANIES[index].last_checked = new Date().toISOString();
+                    return { data: DUMMY_COMPANIES[index], error: null };
+                }
+                return { data: null, error: 'Check failed' };
+            },
+
+            /**
+             * This simulates the other "microservice" from the JD.
+             * It updates the services for a company.
+             */
+            updateCompanyServices: async (id, services) => {
+                await new Promise(res => setTimeout(res, 500));
+                const index = DUMMY_COMPANIES.findIndex(c => c.id === id);
+                if (index !== -1) {
+                    DUMMY_COMPANIES[index].services = services;
+                    return { data: DUMMY_COMPANIES[index], error: null };
+                }
+                return { data: null, error: 'Update failed' };
+            }
+        };
+        
+        // --- 3. UTILITY & RENDER FUNCTIONS ---
+
+        /**
+         * Renders the dashboard metrics (stat cards)
+         */
+        function renderMetrics() {
+            document.getElementById('metric-total').textContent = DUMMY_COMPANIES.length;
+            document.getElementById('metric-at-risk').textContent = DUMMY_COMPANIES.filter(c => c.status === 'At Risk').length;
+            document.getElementById('metric-overdue').textContent = DUMMY_COMPANIES.filter(c => c.status === 'Filing Due').length;
+        }
+
+        /**
+         * Renders the main table of companies
+         */
+        async function renderCompanyList() {
+            const list = document.getElementById('company-list');
+            list.innerHTML = '<tr><td colspan="4" class="p-4 text-center">Loading companies...</td></tr>';
+            
+            const { data: companies, error } = await dummyApi.getCompanies();
+            
+            if (error) {
+                list.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-red-500">Error loading companies.</td></tr>';
+                return;
+            }
+
+            list.innerHTML = companies.map(company => `
+                <tr id="company-row-${company.id}" class="hover:bg-gray-50">
+                    <td class="p-4 font-medium text-gray-900">${company.name}</td>
+                    <td class="p-4">
+                        ${renderStatusBadge(company.status)}
+                    </td>
+                    <td class="p-4 text-sm text-gray-600">
+                        ${company.last_checked ? new Date(company.last_checked).toLocaleString() : 'Never'}
+                    </td>
+                    <td class="p-4 space-x-2">
+                        <button id="btn-check-${company.id}" class="btn btn-secondary text-sm" onclick="handleCheckStatus('${company.id}')">
+                            Check Status
+                        </button>
+                        <button class="btn btn-primary text-sm" onclick="openServicesModal('${company.id}')">
+                            Manage Services
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        /**
+         * Helper function to return a colored badge based on status
+         */
+        function renderStatusBadge(status) {
+            switch (status) {
+                case 'Compliant':
+                    return '<span class="badge badge-green">Compliant</span>';
+                case 'At Risk':
+                    return '<span class="badge badge-yellow">At Risk</span>';
+                case 'Filing Due':
+                    return '<span class="badge badge-red">Filing Due</span>';
+                default:
+                    return '<span class="badge badge-gray">Unknown</span>';
+            }
+        }
+
+        /**
+         * Handles the "Check Status" button click
+         */
+        async function handleCheckStatus(id) {
+            const button = document.getElementById(`btn-check-${id}`);
+            const originalText = button.innerHTML;
+            
+            // Set loading state
+            button.innerHTML = '<div class="spinner"></div> Checking...';
+            button.disabled = true;
+
+            // Call the simulated microservice
+            const { data: updatedCompany, error } = await dummyApi.runComplianceCheck(id);
+
+            if (error) {
+                alert('Error checking status');
+            } else {
+                // Re-render the single row that changed
+                const row = document.getElementById(`company-row-${id}`);
+                row.querySelector('td:nth-child(2)').innerHTML = renderStatusBadge(updatedCompany.status);
+                row.querySelector('td:nth-child(3)').innerHTML = new Date(updatedCompany.last_checked).toLocaleString();
+                // Re-render metrics
+                renderMetrics();
+            }
+
+            // Restore button
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+
+        /**
+         * Opens the "Manage Services" modal
+         */
+        async function openServicesModal(id) {
+            const { data: company, error } = await dummyApi.getCompanyById(id);
+            if (error) return alert('Could not find company');
+
+            document.getElementById('modal-company-id').value = id;
+            document.getElementById('modal-company-name').textContent = company.name;
+            
+            // Set checkboxes based on company data
+            document.getElementById('service-llc').checked = company.services.llc;
+            document.getElementById('service-banking').checked = company.services.banking;
+            document.getElementById('service-compliance').checked = company.services.compliance;
+            document.getElementById('service-taxes').checked = company.services.taxes;
+
+            document.getElementById('services-modal').classList.add('active');
+        }
+
+        /**
+         * Closes any active modal
+         */
+        function closeModal() {
+            document.getElementById('services-modal').classList.remove('active');
+        }
+
+        /**
+         * Handles saving the new services from the modal
+         */
+        async function handleSaveServices(event) {
+            event.preventDefault();
+            const id = document.getElementById('modal-company-id').value;
+            const services = {
+                llc: document.getElementById('service-llc').checked,
+                banking: document.getElementById('service-banking').checked,
+                compliance: document.getElementById('service-compliance').checked,
+                taxes: document.getElementById('service-taxes').checked,
+            };
+
+            // Show loading... (optional)
+            
+            await dummyApi.updateCompanyServices(id, services);
+            
+            // Hide loading
+            closeModal();
+            // Optionally, show a success toast
+        }
+
+        // --- 4. APP INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initial render
+            renderMetrics();
+            renderCompanyList();
+        });
+
+    </script>
+</body>
+</html>
